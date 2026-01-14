@@ -1,0 +1,20 @@
+{
+  "build": {
+    "builder": "dockerfile",
+    "dockerfile": "Dockerfile.railway"
+  },
+  "deploy": {
+    "startCommand": "bash backend/start-railway.sh",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 3,
+    "numReplicas": 1,
+    "sleepApplication": false,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "healthchecks": {
+      "enabled": true,
+      "cpu": 0.1,
+      "memory": 0.5
+    }
+  }
+}

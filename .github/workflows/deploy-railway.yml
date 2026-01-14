@@ -1,0 +1,75 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Validate Railway configuration
+        run: |
+          echo "Validating railway.json..."
+          if [ ! -f "railway.json" ]; then
+            echo "❌ railway.json not found!"
+            exit 1
+          fi
+
+          if [ ! -f "Dockerfile.railway" ]; then
+            echo "❌ Dockerfile.railway not found!"
+            exit 1
+          fi
+
+          if [ ! -f "backend/start-railway.sh" ]; then
+            echo "❌ backend/start-railway.sh not found!"
+            exit 1
+          fi
+
+          echo "✅ All Railway deployment files found"
+
+      - name: Build Docker image (validation)
+        run: |
+          echo "Validating Dockerfile.railway build..."
+          docker build -f Dockerfile.railway -t open-webui:railway-test --target build .
+          echo "✅ Dockerfile.railway builds successfully"
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "🚀 Deploying to Railway..."
+          railway up \
+            --service ${{ secrets.RAILWAY_SERVICE_ID }} \
+            --environment production \
+            --detach
+
+          echo "✅ Deployment initiated successfully"
+
+      - name: Verify deployment
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "🔍 Verifying deployment..."
+          sleep 30
+
+          # Get deployment status
+          railway status --service ${{ secrets.RAILWAY_SERVICE_ID }}
+
+          echo "✅ Deployment verification complete"
